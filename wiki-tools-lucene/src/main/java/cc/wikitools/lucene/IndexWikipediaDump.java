@@ -1,7 +1,10 @@
 package cc.wikitools.lucene;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -32,6 +35,15 @@ public class IndexWikipediaDump {
   private static final Logger LOG = Logger.getLogger(IndexWikipediaDump.class);
 
   public static final Analyzer ANALYZER = new StandardAnalyzer(Version.LUCENE_43);
+
+  static final FieldType textOptions = new FieldType();
+
+  static {
+    textOptions.setIndexed(true);
+    textOptions.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+    textOptions.setStored(true);
+    textOptions.setTokenized(true);        
+  }
 
   public static enum IndexField {
     ID("id"),
@@ -78,12 +90,6 @@ public class IndexWikipediaDump {
     int maxdocs = cmdline.hasOption(MAX_OPTION) ?
         Integer.parseInt(cmdline.getOptionValue(MAX_OPTION)) : Integer.MAX_VALUE;
 
-    final FieldType textOptions = new FieldType();
-    textOptions.setIndexed(true);
-    textOptions.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
-    textOptions.setStored(true);
-    textOptions.setTokenized(true);        
-
     long startTime = System.currentTimeMillis();
 
     String path = cmdline.getOptionValue(INPUT_OPTION);
@@ -100,23 +106,25 @@ public class IndexWikipediaDump {
     try {
       WikipediaDumpBz2InputStream stream = new WikipediaDumpBz2InputStream(path);
 
+      ExecutorService executor = Executors.newFixedThreadPool(4);
       int cnt = 0;
       String page;
       while ((page = stream.readNext()) != null) {
-        Document doc = new Document();
-        doc.add(new IntField(IndexField.ID.name, Integer.parseInt(cleaner.getId(page)), Field.Store.YES));
-        doc.add(new Field(IndexField.TEXT.name, cleaner.clean(page), textOptions));
-        doc.add(new Field(IndexField.TITLE.name, cleaner.getTitle(page), textOptions));
-
-        writer.addDocument(doc);
+        Runnable worker = new MyRunnable(writer, cleaner, page);
+        executor.execute(worker);
 
         cnt++;
         if (cnt % 10000 == 0) {
-          LOG.info(cnt + " statuses indexed");
+          LOG.info(cnt + " statuses added");
         }
         if (cnt >= maxdocs) {
           break;
         }
+      }
+
+      executor.shutdown();
+      // Wait until all threads are finish
+      while (!executor.isTerminated()) {
       }
 
       LOG.info("Total of " + cnt + " docs indexed.");
@@ -129,4 +137,30 @@ public class IndexWikipediaDump {
       out.close();
     }
   }
+  
+  private static class MyRunnable implements Runnable {
+    private final IndexWriter writer;
+    private final WikiClean cleaner;
+    private final String page;
+
+    MyRunnable(IndexWriter writer, WikiClean cleaner, String page) {
+      this.writer = writer;
+      this.cleaner = cleaner;
+      this.page = page;
+    }
+
+    @Override
+    public void run() {
+      Document doc = new Document();
+      doc.add(new IntField(IndexField.ID.name, Integer.parseInt(WikiClean.getId(page)), Field.Store.YES));
+      doc.add(new Field(IndexField.TEXT.name, cleaner.clean(page), textOptions));
+      doc.add(new Field(IndexField.TITLE.name, WikiClean.getTitle(page), textOptions));
+
+      try {
+        writer.addDocument(doc);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  } 
 }
