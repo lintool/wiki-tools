@@ -49,6 +49,10 @@
               <mainClass>cc.wikitools.lucene.IndexWikipediaDump</mainClass>
               <name>IndexWikipediaDump</name>
             </program>
+            <program>
+              <mainClass>cc.wikitools.lucene.SearchWikipedia</mainClass>
+              <name>SearchWikipedia</name>
+            </program>
           </programs>
         </configuration>
       </plugin>
@@ -81,6 +85,11 @@
       <groupId>org.apache.solr</groupId>
       <artifactId>solr-core</artifactId>
       <version>4.3.1</version>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.17</version>
     </dependency>
   </dependencies>
 </project>
