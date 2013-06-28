@@ -10,6 +10,7 @@ import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
@@ -36,13 +37,13 @@ public class IndexWikipediaDump {
 
   public static final Analyzer ANALYZER = new StandardAnalyzer(Version.LUCENE_43);
 
-  static final FieldType textOptions = new FieldType();
+  static final FieldType TEXT_OPTIONS = new FieldType();
 
   static {
-    textOptions.setIndexed(true);
-    textOptions.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
-    textOptions.setStored(true);
-    textOptions.setTokenized(true);        
+    TEXT_OPTIONS.setIndexed(true);
+    TEXT_OPTIONS.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+    TEXT_OPTIONS.setStored(true);
+    TEXT_OPTIONS.setTokenized(true);        
   }
 
   public static enum IndexField {
@@ -60,6 +61,7 @@ public class IndexWikipediaDump {
   private static final String INPUT_OPTION = "input";
   private static final String INDEX_OPTION = "index";
   private static final String MAX_OPTION = "maxdocs";
+  private static final String OPTIMIZE_OPTION = "optimize";
 
   @SuppressWarnings("static-access")
   public static void main(String[] args) throws Exception {
@@ -70,6 +72,7 @@ public class IndexWikipediaDump {
         .withDescription("index location").create(INDEX_OPTION));
     options.addOption(OptionBuilder.withArgName("num").hasArg()
         .withDescription("maximum number of documents to index").create(MAX_OPTION));
+    options.addOption(new Option(OPTIMIZE_OPTION, "merge indexes into a single segment"));
 
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
@@ -110,7 +113,7 @@ public class IndexWikipediaDump {
       int cnt = 0;
       String page;
       while ((page = stream.readNext()) != null) {
-        Runnable worker = new MyRunnable(writer, cleaner, page);
+        Runnable worker = new AddDocumentRunnable(writer, cleaner, page);
         executor.execute(worker);
 
         cnt++;
@@ -124,10 +127,16 @@ public class IndexWikipediaDump {
 
       executor.shutdown();
       // Wait until all threads are finish
-      while (!executor.isTerminated()) {
-      }
+      while (!executor.isTerminated()) {}
 
       LOG.info("Total of " + cnt + " docs indexed.");
+
+      if (cmdline.hasOption(OPTIMIZE_OPTION)) {
+        LOG.info("Merging segments...");
+        writer.forceMerge(1);
+        LOG.info("Done!");
+      }
+
       LOG.info("Total elapsed time: " + (System.currentTimeMillis() - startTime) + "ms");
     } catch (Exception e) {
       e.printStackTrace();
@@ -138,12 +147,12 @@ public class IndexWikipediaDump {
     }
   }
   
-  private static class MyRunnable implements Runnable {
+  private static class AddDocumentRunnable implements Runnable {
     private final IndexWriter writer;
     private final WikiClean cleaner;
     private final String page;
 
-    MyRunnable(IndexWriter writer, WikiClean cleaner, String page) {
+    AddDocumentRunnable(IndexWriter writer, WikiClean cleaner, String page) {
       this.writer = writer;
       this.cleaner = cleaner;
       this.page = page;
@@ -153,8 +162,8 @@ public class IndexWikipediaDump {
     public void run() {
       Document doc = new Document();
       doc.add(new IntField(IndexField.ID.name, Integer.parseInt(WikiClean.getId(page)), Field.Store.YES));
-      doc.add(new Field(IndexField.TEXT.name, cleaner.clean(page), textOptions));
-      doc.add(new Field(IndexField.TITLE.name, WikiClean.getTitle(page), textOptions));
+      doc.add(new Field(IndexField.TEXT.name, cleaner.clean(page), TEXT_OPTIONS));
+      doc.add(new Field(IndexField.TITLE.name, WikiClean.getTitle(page), TEXT_OPTIONS));
 
       try {
         writer.addDocument(doc);
