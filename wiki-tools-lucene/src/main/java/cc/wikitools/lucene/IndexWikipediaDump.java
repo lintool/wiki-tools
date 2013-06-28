@@ -58,20 +58,26 @@ public class IndexWikipediaDump {
     }
   };
 
+  private static final int DEFAULT_NUM_THREADS = 4;
+
   private static final String INPUT_OPTION = "input";
   private static final String INDEX_OPTION = "index";
   private static final String MAX_OPTION = "maxdocs";
   private static final String OPTIMIZE_OPTION = "optimize";
+  private static final String THREADS_OPTION = "threads";
 
   @SuppressWarnings("static-access")
   public static void main(String[] args) throws Exception {
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
-        .withDescription("gzipped XML dump file").create(INPUT_OPTION));
+        .withDescription("bz2 Wikipedia XML dump file").create(INPUT_OPTION));
     options.addOption(OptionBuilder.withArgName("dir").hasArg()
         .withDescription("index location").create(INDEX_OPTION));
     options.addOption(OptionBuilder.withArgName("num").hasArg()
         .withDescription("maximum number of documents to index").create(MAX_OPTION));
+    options.addOption(OptionBuilder.withArgName("num").hasArg()
+        .withDescription("number of indexing threads").create(THREADS_OPTION));
+
     options.addOption(new Option(OPTIMIZE_OPTION, "merge indexes into a single segment"));
 
     CommandLine cmdline = null;
@@ -92,6 +98,8 @@ public class IndexWikipediaDump {
     String indexPath = cmdline.getOptionValue(INDEX_OPTION);
     int maxdocs = cmdline.hasOption(MAX_OPTION) ?
         Integer.parseInt(cmdline.getOptionValue(MAX_OPTION)) : Integer.MAX_VALUE;
+    int threads = cmdline.hasOption(THREADS_OPTION) ?
+        Integer.parseInt(cmdline.getOptionValue(THREADS_OPTION)) : DEFAULT_NUM_THREADS;
 
     long startTime = System.currentTimeMillis();
 
@@ -105,11 +113,12 @@ public class IndexWikipediaDump {
 
     IndexWriter writer = new IndexWriter(dir, config);
     LOG.info("Creating index at " + indexPath);
+    LOG.info("Indexing with " + threads + " threads");
 
     try {
       WikipediaDumpBz2InputStream stream = new WikipediaDumpBz2InputStream(path);
 
-      ExecutorService executor = Executors.newFixedThreadPool(4);
+      ExecutorService executor = Executors.newFixedThreadPool(threads);
       int cnt = 0;
       String page;
       while ((page = stream.readNext()) != null) {
@@ -118,7 +127,7 @@ public class IndexWikipediaDump {
 
         cnt++;
         if (cnt % 10000 == 0) {
-          LOG.info(cnt + " statuses added");
+          LOG.info(cnt + " articles added");
         }
         if (cnt >= maxdocs) {
           break;
@@ -129,7 +138,7 @@ public class IndexWikipediaDump {
       // Wait until all threads are finish
       while (!executor.isTerminated()) {}
 
-      LOG.info("Total of " + cnt + " docs indexed.");
+      LOG.info("Total of " + cnt + " articles indexed.");
 
       if (cmdline.hasOption(OPTIMIZE_OPTION)) {
         LOG.info("Merging segments...");
