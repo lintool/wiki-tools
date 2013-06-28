@@ -122,6 +122,16 @@ public class IndexWikipediaDump {
       int cnt = 0;
       String page;
       while ((page = stream.readNext()) != null) {
+        String title = WikiClean.getTitle(page);
+
+        if (title.startsWith("Wikipedia:") || title.startsWith("Portal:")) {
+          continue;
+        }
+
+        if (page.contains("#REDIRECT")) {
+          continue;
+        }
+
         Runnable worker = new AddDocumentRunnable(writer, cleaner, page);
         executor.execute(worker);
 
