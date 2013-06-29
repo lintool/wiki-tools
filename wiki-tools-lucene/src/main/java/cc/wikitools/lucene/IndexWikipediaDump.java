@@ -124,11 +124,12 @@ public class IndexWikipediaDump {
       while ((page = stream.readNext()) != null) {
         String title = WikiClean.getTitle(page);
 
-        if (title.startsWith("Wikipedia:") || title.startsWith("Portal:")) {
+        // These are heuristic specifically for filtering out non-articles in enwiki-20120104
+        if (title.startsWith("Wikipedia:") || title.startsWith("Portal:") || title.startsWith("File:")) {
           continue;
         }
 
-        if (page.contains("#REDIRECT")) {
+        if (page.contains("#REDIRECT") || page.contains("#redirect") || page.contains("#Redirect")) {
           continue;
         }
 
