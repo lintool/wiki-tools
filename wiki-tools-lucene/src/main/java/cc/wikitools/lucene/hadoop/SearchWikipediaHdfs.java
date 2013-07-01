@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cc.wikitools.lucene;
+package cc.wikitools.lucene.hadoop;
 
 import java.io.PrintStream;
 
@@ -26,13 +26,17 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 
 import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
 
-public class SearchWikipediaHdfs {
+public class SearchWikipediaHdfs extends Configured implements Tool {
   private static final int DEFAULT_NUM_RESULTS = 10;
 
   private static final String INDEX_OPTION = "index";
@@ -43,7 +47,8 @@ public class SearchWikipediaHdfs {
   private static final String TITLE_OPTION = "title";
 
   @SuppressWarnings("static-access")
-  public static void main(String[] args) throws Exception {
+  @Override
+  public int run(String[] args) throws Exception {
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("index location").create(INDEX_OPTION));
@@ -73,7 +78,6 @@ public class SearchWikipediaHdfs {
     }
 
     String indexLocation = cmdline.getOptionValue(INDEX_OPTION);
-
     String queryText = cmdline.getOptionValue(QUERY_OPTION);
     int numResults = cmdline.hasOption(NUM_RESULTS_OPTION) ?
         Integer.parseInt(cmdline.getOptionValue(NUM_RESULTS_OPTION)) : DEFAULT_NUM_RESULTS;
@@ -82,7 +86,8 @@ public class SearchWikipediaHdfs {
 
     PrintStream out = new PrintStream(System.out, true, "UTF-8");
 
-    HdfsWikipediaSearcher searcher = new HdfsWikipediaSearcher(indexLocation);
+    HdfsWikipediaSearcher searcher = 
+        new HdfsWikipediaSearcher(new Path(indexLocation), getConf());
     TopDocs rs = null;
     if (searchArticle) {
       rs = searcher.searchArticle(queryText, numResults);
@@ -106,5 +111,11 @@ public class SearchWikipediaHdfs {
 
     searcher.close();
     out.close();
+
+    return 0;
+  }
+
+  public static void main(String[] args) throws Exception {
+    ToolRunner.run(new SearchWikipediaHdfs(), args);
   }
 }

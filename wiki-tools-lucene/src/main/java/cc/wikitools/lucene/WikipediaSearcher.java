@@ -29,7 +29,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.similarities.Similarity;
-import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.apache.solr.common.params.SolrParams;
@@ -41,15 +40,23 @@ import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
 import com.google.common.base.Preconditions;
 
 public class WikipediaSearcher {
-  private IndexReader reader;
-  private IndexSearcher searcher;
+  protected IndexReader reader;
+  protected IndexSearcher searcher;
   private QueryParser parserArticle;
   private QueryParser parserTitle;
 
-  public WikipediaSearcher(String indexLocation) throws IOException {
-    Preconditions.checkNotNull(indexLocation);
+  protected WikipediaSearcher() {}
 
-    reader = DirectoryReader.open(createDirectory(indexLocation));
+  public WikipediaSearcher(File indexLocation) throws IOException {
+    Preconditions.checkNotNull(indexLocation);
+    Preconditions.checkArgument(indexLocation.exists());
+
+    reader = DirectoryReader.open(FSDirectory.open(indexLocation));
+
+    init();
+  }
+
+  protected void init() {
     searcher = new IndexSearcher(reader);
 
     NamedList<Double> paramNamedList = new NamedList<Double>();
@@ -62,10 +69,6 @@ public class WikipediaSearcher {
 
     parserArticle = new QueryParser(Version.LUCENE_43, IndexField.TEXT.name, IndexWikipediaDump.ANALYZER);
     parserTitle = new QueryParser(Version.LUCENE_43, IndexField.TITLE.name, IndexWikipediaDump.ANALYZER);
-  }
-
-  protected Directory createDirectory(String indexLocation) throws IOException {
-    return FSDirectory.open(new File(indexLocation));
   }
 
   public TopDocs searchArticle(String q, int numResults) {

@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package cc.wikitools.lucene;
+package cc.wikitools.lucene.hadoop;
 
-import java.io.File;
 import java.io.PrintStream;
 
 import org.apache.commons.cli.CommandLine;
@@ -26,16 +25,21 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.lucene.document.Document;
 
 import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
 
-public class FetchWikipediaArticleById {
+public class FetchWikipediaArticleByIdHdfs extends Configured implements Tool {
   private static final String INDEX_OPTION = "index";
   private static final String ID_OPTION = "id";
 
   @SuppressWarnings("static-access")
-  public static void main(String[] args) throws Exception {
+  @Override
+  public int run(String[] args) throws Exception {
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("index location").create(INDEX_OPTION));
@@ -54,21 +58,17 @@ public class FetchWikipediaArticleById {
     if (!cmdline.hasOption(ID_OPTION) || !cmdline.hasOption(INDEX_OPTION)
         || !cmdline.hasOption(ID_OPTION)) {
       HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp(FetchWikipediaArticleById.class.getName(), options);
+      formatter.printHelp(FetchWikipediaArticleByIdHdfs.class.getName(), options);
       System.exit(-1);
     }
 
-    File indexLocation = new File(cmdline.getOptionValue(INDEX_OPTION));
-    if (indexLocation.exists()) {
-      System.err.println("Error: " + indexLocation + " does not exist!");
-      System.exit(-1);
-    }
-
+    String indexLocation = cmdline.getOptionValue(INDEX_OPTION);
     int id = Integer.parseInt(cmdline.getOptionValue(ID_OPTION));
 
     PrintStream out = new PrintStream(System.out, true, "UTF-8");
 
-    WikipediaSearcher searcher = new WikipediaSearcher(indexLocation);
+    HdfsWikipediaSearcher searcher =
+        new HdfsWikipediaSearcher(new Path(indexLocation), getConf());
     Document doc = searcher.getArticle(id);
 
     if (doc == null) {
@@ -79,5 +79,11 @@ public class FetchWikipediaArticleById {
 
     searcher.close();
     out.close();
+
+    return 0;
+  }
+
+  public static void main(String[] args) throws Exception {
+    ToolRunner.run(new FetchWikipediaArticleByIdHdfs(), args);
   }
 }

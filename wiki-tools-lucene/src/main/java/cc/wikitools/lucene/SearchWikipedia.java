@@ -73,8 +73,8 @@ public class SearchWikipedia {
       System.exit(-1);
     }
 
-    String indexLocation = cmdline.getOptionValue(INDEX_OPTION);
-    if (!new File(indexLocation).exists()) {
+    File indexLocation = new File(cmdline.getOptionValue(INDEX_OPTION));
+    if (!indexLocation.exists()) {
       System.err.println("Error: " + indexLocation + " does not exist!");
       System.exit(-1);
     }
