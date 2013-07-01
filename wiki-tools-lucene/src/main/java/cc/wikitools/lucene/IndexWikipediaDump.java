@@ -30,7 +30,7 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.wikiclean.WikiClean;
 import org.wikiclean.WikiCleanBuilder;
-import org.wikiclean.WikipediaDumpBz2InputStream;
+import org.wikiclean.WikipediaBz2DumpInputStream;
 
 public class IndexWikipediaDump {
   private static final Logger LOG = Logger.getLogger(IndexWikipediaDump.class);
@@ -116,15 +116,15 @@ public class IndexWikipediaDump {
     LOG.info("Indexing with " + threads + " threads");
 
     try {
-      WikipediaDumpBz2InputStream stream = new WikipediaDumpBz2InputStream(path);
+      WikipediaBz2DumpInputStream stream = new WikipediaBz2DumpInputStream(path);
 
       ExecutorService executor = Executors.newFixedThreadPool(threads);
       int cnt = 0;
       String page;
       while ((page = stream.readNext()) != null) {
-        String title = WikiClean.getTitle(page);
+        String title = cleaner.getTitle(page);
 
-        // These are heuristic specifically for filtering out non-articles in enwiki-20120104
+        // These are heuristic specifically for filtering out non-articles in enwiki-20120104.
         if (title.startsWith("Wikipedia:") || title.startsWith("Portal:") || title.startsWith("File:")) {
           continue;
         }
@@ -181,9 +181,9 @@ public class IndexWikipediaDump {
     @Override
     public void run() {
       Document doc = new Document();
-      doc.add(new IntField(IndexField.ID.name, Integer.parseInt(WikiClean.getId(page)), Field.Store.YES));
+      doc.add(new IntField(IndexField.ID.name, Integer.parseInt(cleaner.getId(page)), Field.Store.YES));
       doc.add(new Field(IndexField.TEXT.name, cleaner.clean(page), TEXT_OPTIONS));
-      doc.add(new Field(IndexField.TITLE.name, WikiClean.getTitle(page), TEXT_OPTIONS));
+      doc.add(new Field(IndexField.TITLE.name, cleaner.getTitle(page), TEXT_OPTIONS));
 
       try {
         writer.addDocument(doc);
