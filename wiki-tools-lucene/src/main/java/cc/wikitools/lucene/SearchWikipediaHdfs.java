@@ -16,7 +16,6 @@
 
 package cc.wikitools.lucene;
 
-import java.io.File;
 import java.io.PrintStream;
 
 import org.apache.commons.cli.CommandLine;
@@ -33,7 +32,7 @@ import org.apache.lucene.search.TopDocs;
 
 import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
 
-public class SearchWikipedia {
+public class SearchWikipediaHdfs {
   private static final int DEFAULT_NUM_RESULTS = 10;
 
   private static final String INDEX_OPTION = "index";
@@ -69,15 +68,11 @@ public class SearchWikipedia {
     if (!cmdline.hasOption(QUERY_OPTION) || !cmdline.hasOption(INDEX_OPTION)
         || !cmdline.hasOption(QUERY_OPTION)) {
       HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp(SearchWikipedia.class.getName(), options);
+      formatter.printHelp(SearchWikipediaHdfs.class.getName(), options);
       System.exit(-1);
     }
 
     String indexLocation = cmdline.getOptionValue(INDEX_OPTION);
-    if (!new File(indexLocation).exists()) {
-      System.err.println("Error: " + indexLocation + " does not exist!");
-      System.exit(-1);
-    }
 
     String queryText = cmdline.getOptionValue(QUERY_OPTION);
     int numResults = cmdline.hasOption(NUM_RESULTS_OPTION) ?
@@ -87,7 +82,7 @@ public class SearchWikipedia {
 
     PrintStream out = new PrintStream(System.out, true, "UTF-8");
 
-    WikipediaSearcher searcher = new WikipediaSearcher(indexLocation);
+    HdfsWikipediaSearcher searcher = new HdfsWikipediaSearcher(indexLocation);
     TopDocs rs = null;
     if (searchArticle) {
       rs = searcher.searchArticle(queryText, numResults);

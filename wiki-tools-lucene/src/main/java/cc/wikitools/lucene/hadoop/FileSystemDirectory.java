@@ -16,9 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.contrib.index.lucene;
+package cc.wikitools.lucene.hadoop;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -29,6 +30,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.lucene.store.BufferedIndexInput;
 import org.apache.lucene.store.BufferedIndexOutput;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
@@ -94,15 +96,16 @@ public class FileSystemDirectory extends Directory {
       throw new IOException(directory + " is not a directory");
     }
 
-    // clear old index files
-    FileStatus[] fileStatus =
-        fs.listStatus(directory, LuceneIndexFileNameFilter.getFilter());
-    for (int i = 0; i < fileStatus.length; i++) {
-      if (!fs.delete(fileStatus[i].getPath())) {
-        throw new IOException("Cannot delete index file "
-            + fileStatus[i].getPath());
-      }
-    }
+    fs.delete(directory, true);
+//    // clear old index files
+//    FileStatus[] fileStatus =
+//        fs.listStatus(directory, LuceneIndexFileNameFilter.getFilter());
+//    for (int i = 0; i < fileStatus.length; i++) {
+//      if (!fs.delete(fileStatus[i].getPath())) {
+//        throw new IOException("Cannot delete index file "
+//            + fileStatus[i].getPath());
+//      }
+//    }
   }
 
   /* (non-Javadoc)
@@ -110,7 +113,7 @@ public class FileSystemDirectory extends Directory {
    */
   public String[] list() throws IOException {
     FileStatus[] fileStatus =
-        fs.listStatus(directory, LuceneIndexFileNameFilter.getFilter());
+        fs.listStatus(directory); //, LuceneIndexFileNameFilter.getFilter());
     String[] result = new String[fileStatus.length];
     for (int i = 0; i < fileStatus.length; i++) {
       result[i] = fileStatus[i].getPath().getName();
@@ -245,6 +248,7 @@ public class FileSystemDirectory extends Directory {
 
     public FileSystemIndexInput(Path path, int ioFileBufferSize)
         throws IOException {
+      super(path.toString(), ioFileBufferSize);
       filePath = path;
       descriptor = new Descriptor(path, ioFileBufferSize);
       length = fs.getFileStatus(path).getLen();
@@ -296,7 +300,7 @@ public class FileSystemDirectory extends Directory {
       }
     }
 
-    public Object clone() {
+    public BufferedIndexInput clone() {
       FileSystemIndexInput clone = (FileSystemIndexInput) super.clone();
       clone.isClone = true;
       return clone;
@@ -344,6 +348,29 @@ public class FileSystemDirectory extends Directory {
         close(); // close the file
       }
     }
+  }
+
+  @Override
+  public IndexOutput createOutput(String arg0, IOContext arg1) throws IOException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public String[] listAll() throws IOException {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public IndexInput openInput(String arg0, IOContext arg1) throws IOException {
+    return openInput(arg0);
+  }
+
+  @Override
+  public void sync(Collection<String> arg0) throws IOException {
+    // TODO Auto-generated method stub
+    
   }
 
 }

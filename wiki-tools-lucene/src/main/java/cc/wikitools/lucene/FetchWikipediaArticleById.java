@@ -58,8 +58,8 @@ public class FetchWikipediaArticleById {
       System.exit(-1);
     }
 
-    File indexLocation = new File(cmdline.getOptionValue(INDEX_OPTION));
-    if (!indexLocation.exists()) {
+    String indexLocation = cmdline.getOptionValue(INDEX_OPTION);
+    if (!new File(indexLocation).exists()) {
       System.err.println("Error: " + indexLocation + " does not exist!");
       System.exit(-1);
     }
