@@ -12,19 +12,8 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.similarities.Similarity;
-import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
-import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.common.util.NamedList;
-import org.apache.solr.search.similarities.LMDirichletSimilarityFactory;
 
 import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
 
@@ -35,6 +24,8 @@ public class SearchWikipedia {
   private static final String QUERY_OPTION = "q";
   private static final String NUM_RESULTS_OPTION = "num_results";
   private static final String VERBOSE_OPTION = "verbose";
+  private static final String ARTICLE_OPTION = "article";
+  private static final String TITLE_OPTION = "title";
 
   @SuppressWarnings("static-access")
   public static void main(String[] args) throws Exception {
@@ -45,7 +36,10 @@ public class SearchWikipedia {
         .withDescription("query text").create(QUERY_OPTION));
     options.addOption(OptionBuilder.withArgName("num").hasArg()
         .withDescription("number of results to return").create(NUM_RESULTS_OPTION));
+
     options.addOption(new Option(VERBOSE_OPTION, "print out complete document"));
+    options.addOption(new Option(TITLE_OPTION, "search title"));
+    options.addOption(new Option(ARTICLE_OPTION, "search article"));
 
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
@@ -73,24 +67,17 @@ public class SearchWikipedia {
     int numResults = cmdline.hasOption(NUM_RESULTS_OPTION) ?
         Integer.parseInt(cmdline.getOptionValue(NUM_RESULTS_OPTION)) : DEFAULT_NUM_RESULTS;
     boolean verbose = cmdline.hasOption(VERBOSE_OPTION);
+    boolean searchArticle = !cmdline.hasOption(TITLE_OPTION);
 
     PrintStream out = new PrintStream(System.out, true, "UTF-8");
 
-    IndexReader reader = DirectoryReader.open(FSDirectory.open(indexLocation));
-    IndexSearcher searcher = new IndexSearcher(reader);
-
-    NamedList<Double> paramNamedList = new NamedList<Double>();
-    paramNamedList.add("mu", 2500.0);
-    SolrParams params = SolrParams.toSolrParams(paramNamedList);
-    LMDirichletSimilarityFactory factory = new LMDirichletSimilarityFactory();
-    factory.init(params);
-    Similarity simLMDir = factory.getSimilarity();
-    searcher.setSimilarity(simLMDir);
-
-    QueryParser p = new QueryParser(Version.LUCENE_43, IndexField.TEXT.name, IndexWikipediaDump.ANALYZER);
-    Query query = p.parse(queryText);
-
-    TopDocs rs = searcher.search(query, numResults);
+    WikipediaSearcher searcher = new WikipediaSearcher(indexLocation);
+    TopDocs rs = null;
+    if (searchArticle) {
+      rs = searcher.searchArticle(queryText, numResults);
+    } else {
+      rs = searcher.searchTitle(queryText, numResults);
+    }
 
     int i = 1;
     for (ScoreDoc scoreDoc : rs.scoreDocs) {
@@ -106,7 +93,7 @@ public class SearchWikipedia {
       i++;
     }
 
-    reader.close();
+    searcher.close();
     out.close();
   }
 }

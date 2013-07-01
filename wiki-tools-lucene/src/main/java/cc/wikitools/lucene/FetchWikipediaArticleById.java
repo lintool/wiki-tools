@@ -11,14 +11,6 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.NumericRangeQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.store.FSDirectory;
 
 import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
 
@@ -60,23 +52,16 @@ public class FetchWikipediaArticleById {
 
     PrintStream out = new PrintStream(System.out, true, "UTF-8");
 
-    IndexReader reader = DirectoryReader.open(FSDirectory.open(indexLocation));
-    IndexSearcher searcher = new IndexSearcher(reader);
+    WikipediaSearcher searcher = new WikipediaSearcher(indexLocation);
+    Document doc = searcher.getArticle(id);
 
-    Query query = NumericRangeQuery.newIntRange(IndexField.ID.name, id, id, true, true);
-
-    TopDocs rs = searcher.search(query, 1);
-
-    if (rs.totalHits == 0) {
+    if (doc == null) {
       System.err.print("id " + id + " doesn't exist!\n");
     } else {
-      ScoreDoc scoreDoc = rs.scoreDocs[0];
-      Document hit = searcher.doc(scoreDoc.doc);
-
-      out.println(hit.getField(IndexField.TEXT.name).stringValue());
+      out.println(doc.getField(IndexField.TEXT.name).stringValue());
     }
 
-    reader.close();
+    searcher.close();
     out.close();
   }
 }
