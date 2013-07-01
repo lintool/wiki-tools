@@ -45,16 +45,12 @@
         <configuration>
           <programs>
             <program>
-              <mainClass>cc.wikitools.lucene.IndexWikipediaDump</mainClass>
-              <name>IndexWikipediaDump</name>
+              <mainClass>cc.wikitools.lucene.hadoop.SearchWikipediaHdfs</mainClass>
+              <name>SearchWikipediaHdfs</name>
             </program>
             <program>
-              <mainClass>cc.wikitools.lucene.SearchWikipedia</mainClass>
-              <name>SearchWikipedia</name>
-            </program>
-            <program>
-              <mainClass>cc.wikitools.lucene.FetchWikipediaArticleById</mainClass>
-              <name>FetchWikipediaArticleById</name>
+              <mainClass>cc.wikitools.lucene.hadoop.FetchWikipediaArticleByIdHdfs</mainClass>
+              <name>FetchWikipediaArticleByIdHdfs</name>
             </program>
           </programs>
         </configuration>
