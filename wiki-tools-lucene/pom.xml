@@ -3,7 +3,7 @@
   <groupId>cc.wikitools</groupId>
   <artifactId>wiki-tools-lucene</artifactId>
   <packaging>jar</packaging>
-  <version>0.1</version>
+  <version>0.2-SNAPSHOT</version>
   <name>wiki-tools-lucene</name>
   <description>Tools for indexing Wikipedia with Lucene</description>
   <url>http://wikitools.cc</url>
