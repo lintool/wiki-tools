@@ -37,7 +37,7 @@ public class FindWikipediaArticleId {
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("index location").create(INDEX_OPTION));
     options.addOption(OptionBuilder.withArgName("string").hasArg()
-        .withDescription("query text").create(TITLE_OPTION));
+        .withDescription("article title").create(TITLE_OPTION));
 
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();

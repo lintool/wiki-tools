@@ -39,9 +39,9 @@ public class ScoreWikipediaArticle {
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("index location").create(INDEX_OPTION));
     options.addOption(OptionBuilder.withArgName("num").hasArg()
-        .withDescription("id").create(ID_OPTION));
+        .withDescription("article id").create(ID_OPTION));
     options.addOption(OptionBuilder.withArgName("string").hasArg()
-        .withDescription("title").create(TITLE_OPTION));
+        .withDescription("article title").create(TITLE_OPTION));
     options.addOption(OptionBuilder.withArgName("string").hasArg()
         .withDescription("query text").create(QUERY_OPTION));
 
