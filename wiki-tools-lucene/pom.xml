@@ -49,12 +49,8 @@
               <name>IndexWikipediaDump</name>
             </program>
             <program>
-              <mainClass>cc.wikitools.lucene.SearchWikipedia</mainClass>
-              <name>SearchWikipedia</name>
-            </program>
-            <program>
-              <mainClass>cc.wikitools.lucene.FetchWikipediaArticleById</mainClass>
-              <name>FetchWikipediaArticleById</name>
+              <mainClass>cc.wikitools.lucene.Launcher</mainClass>
+              <name>launch</name>
             </program>
           </programs>
         </configuration>
