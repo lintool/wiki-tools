@@ -1,5 +1,5 @@
 /**
- * wiki-tools-lucene: Java package for searching Wikipedia dumps with Lucene
+ * wiki-tools-lucene-hadoop: Java tools for searching Wikipedia Lucene indexes in HDFS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,13 +29,12 @@ import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
-import org.apache.lucene.document.Document;
 
-import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
-
-public class FetchWikipediaArticleByIdHdfs extends Configured implements Tool {
+public class ScoreWikipediaArticleHdfs extends Configured implements Tool {
   private static final String INDEX_OPTION = "index";
   private static final String ID_OPTION = "id";
+  private static final String TITLE_OPTION = "title";
+  private static final String QUERY_OPTION = "q";
 
   @SuppressWarnings("static-access")
   @Override
@@ -43,8 +42,12 @@ public class FetchWikipediaArticleByIdHdfs extends Configured implements Tool {
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("index location").create(INDEX_OPTION));
+    options.addOption(OptionBuilder.withArgName("num").hasArg()
+        .withDescription("id").create(ID_OPTION));
     options.addOption(OptionBuilder.withArgName("string").hasArg()
-        .withDescription("query text").create(ID_OPTION));
+        .withDescription("title").create(TITLE_OPTION));
+    options.addOption(OptionBuilder.withArgName("string").hasArg()
+        .withDescription("query text").create(QUERY_OPTION));
 
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
@@ -55,26 +58,25 @@ public class FetchWikipediaArticleByIdHdfs extends Configured implements Tool {
       System.exit(-1);
     }
 
-    if (!cmdline.hasOption(ID_OPTION) || !cmdline.hasOption(INDEX_OPTION)
-        || !cmdline.hasOption(ID_OPTION)) {
+    if (!(cmdline.hasOption(ID_OPTION) || cmdline.hasOption(TITLE_OPTION)) || 
+        !cmdline.hasOption(INDEX_OPTION) || !cmdline.hasOption(QUERY_OPTION)) {
       HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp(FetchWikipediaArticleByIdHdfs.class.getName(), options);
+      formatter.printHelp(ScoreWikipediaArticleHdfs.class.getName(), options);
       System.exit(-1);
     }
 
     String indexLocation = cmdline.getOptionValue(INDEX_OPTION);
-    int id = Integer.parseInt(cmdline.getOptionValue(ID_OPTION));
-
-    PrintStream out = new PrintStream(System.out, true, "UTF-8");
+    String queryText = cmdline.getOptionValue(QUERY_OPTION);
 
     HdfsWikipediaSearcher searcher =
         new HdfsWikipediaSearcher(new Path(indexLocation), getConf());
-    Document doc = searcher.getArticle(id);
+    PrintStream out = new PrintStream(System.out, true, "UTF-8");
 
-    if (doc == null) {
-      System.err.print("id " + id + " doesn't exist!\n");
+    if (cmdline.hasOption(ID_OPTION)) {
+      out.println("score: " + searcher.scoreArticle(queryText,
+          Integer.parseInt(cmdline.getOptionValue(ID_OPTION))));
     } else {
-      out.println(doc.getField(IndexField.TEXT.name).stringValue());
+      out.println("score: " + searcher.scoreArticle(queryText, cmdline.getOptionValue(TITLE_OPTION)));
     }
 
     searcher.close();
@@ -84,6 +86,6 @@ public class FetchWikipediaArticleByIdHdfs extends Configured implements Tool {
   }
 
   public static void main(String[] args) throws Exception {
-    ToolRunner.run(new FetchWikipediaArticleByIdHdfs(), args);
+    ToolRunner.run(new ScoreWikipediaArticleHdfs(), args);
   }
 }

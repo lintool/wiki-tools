@@ -5,7 +5,7 @@
   <packaging>jar</packaging>
   <version>0.1-SNAPSHOT</version>
   <name>wiki-tools-lucene-hadoop</name>
-  <description>Tools for searching Wikipedia Lucene indexes in HDFS</description>
+  <description>Java tools for searching Wikipedia Lucene indexes in HDFS</description>
   <url>http://wikitools.cc</url>
 
   <licenses>
@@ -45,12 +45,8 @@
         <configuration>
           <programs>
             <program>
-              <mainClass>cc.wikitools.lucene.hadoop.SearchWikipediaHdfs</mainClass>
-              <name>SearchWikipediaHdfs</name>
-            </program>
-            <program>
-              <mainClass>cc.wikitools.lucene.hadoop.FetchWikipediaArticleByIdHdfs</mainClass>
-              <name>FetchWikipediaArticleByIdHdfs</name>
+              <mainClass>cc.wikitools.lucene.Launcher</mainClass>
+              <name>launch</name>
             </program>
           </programs>
         </configuration>
