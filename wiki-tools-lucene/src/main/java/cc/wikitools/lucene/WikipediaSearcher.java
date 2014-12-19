@@ -29,12 +29,9 @@ import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.similarities.Similarity;
+import org.apache.lucene.search.similarities.LMDirichletSimilarity;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
-import org.apache.solr.common.params.SolrParams;
-import org.apache.solr.common.util.NamedList;
-import org.apache.solr.search.similarities.LMDirichletSimilarityFactory;
 
 import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
 
@@ -59,14 +56,7 @@ public class WikipediaSearcher {
 
   protected void init() {
     searcher = new IndexSearcher(reader);
-
-    NamedList<Double> paramNamedList = new NamedList<Double>();
-    paramNamedList.add("mu", 2500.0);
-    SolrParams params = SolrParams.toSolrParams(paramNamedList);
-    LMDirichletSimilarityFactory factory = new LMDirichletSimilarityFactory();
-    factory.init(params);
-    Similarity simLMDir = factory.getSimilarity();
-    searcher.setSimilarity(simLMDir);
+    searcher.setSimilarity(new LMDirichletSimilarity(2500.0f));
 
     parserArticle = new QueryParser(Version.LUCENE_43, IndexField.TEXT.name, IndexWikipediaDump.ANALYZER);
     parserTitle = new QueryParser(Version.LUCENE_43, IndexField.TITLE.name, IndexWikipediaDump.ANALYZER);
@@ -78,6 +68,7 @@ public class WikipediaSearcher {
       if (internalId == -1) return 0.0f;
       Query query = parserArticle.parse(q);
       Explanation explanation = searcher.explain(query, internalId);
+      System.out.println(explanation);
       return explanation.getValue();
     } catch (Exception e) {
       e.printStackTrace();
@@ -91,6 +82,7 @@ public class WikipediaSearcher {
       if (internalId == -1) return 0.0f;
       Query query = parserArticle.parse(q);
       Explanation explanation = searcher.explain(query, internalId);
+      System.out.println(explanation);
       return explanation.getValue();
     } catch (Exception e) {
       e.printStackTrace();
