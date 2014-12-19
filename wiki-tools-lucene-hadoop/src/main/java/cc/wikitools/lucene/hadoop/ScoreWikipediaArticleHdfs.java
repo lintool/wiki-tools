@@ -1,5 +1,5 @@
 /**
- * wiki-tools-lucene: Java package for searching Wikipedia dumps with Lucene
+ * wiki-tools-lucene-hadoop: Java tools for searching Wikipedia Lucene indexes in HDFS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package cc.wikitools.lucene;
+package cc.wikitools.lucene.hadoop;
 
-import java.io.File;
 import java.io.PrintStream;
 
 import org.apache.commons.cli.CommandLine;
@@ -26,21 +25,29 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.lucene.document.Document;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 
-import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
-
-public class FetchWikipediaArticleById {
+public class ScoreWikipediaArticleHdfs extends Configured implements Tool {
   private static final String INDEX_OPTION = "index";
   private static final String ID_OPTION = "id";
+  private static final String TITLE_OPTION = "title";
+  private static final String QUERY_OPTION = "q";
 
   @SuppressWarnings("static-access")
-  public static void main(String[] args) throws Exception {
+  @Override
+  public int run(String[] args) throws Exception {
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("index location").create(INDEX_OPTION));
+    options.addOption(OptionBuilder.withArgName("num").hasArg()
+        .withDescription("id").create(ID_OPTION));
     options.addOption(OptionBuilder.withArgName("string").hasArg()
-        .withDescription("query text").create(ID_OPTION));
+        .withDescription("title").create(TITLE_OPTION));
+    options.addOption(OptionBuilder.withArgName("string").hasArg()
+        .withDescription("query text").create(QUERY_OPTION));
 
     CommandLine cmdline = null;
     CommandLineParser parser = new GnuParser();
@@ -51,33 +58,34 @@ public class FetchWikipediaArticleById {
       System.exit(-1);
     }
 
-    if (!cmdline.hasOption(ID_OPTION) || !cmdline.hasOption(INDEX_OPTION)
-        || !cmdline.hasOption(ID_OPTION)) {
+    if (!(cmdline.hasOption(ID_OPTION) || cmdline.hasOption(TITLE_OPTION)) || 
+        !cmdline.hasOption(INDEX_OPTION) || !cmdline.hasOption(QUERY_OPTION)) {
       HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp(SearchWikipedia.class.getName(), options);
+      formatter.printHelp(ScoreWikipediaArticleHdfs.class.getName(), options);
       System.exit(-1);
     }
 
-    File indexLocation = new File(cmdline.getOptionValue(INDEX_OPTION));
-    if (!indexLocation.exists()) {
-      System.err.println("Error: " + indexLocation + " does not exist!");
-      System.exit(-1);
-    }
+    String indexLocation = cmdline.getOptionValue(INDEX_OPTION);
+    String queryText = cmdline.getOptionValue(QUERY_OPTION);
 
-    int id = Integer.parseInt(cmdline.getOptionValue(ID_OPTION));
-
+    HdfsWikipediaSearcher searcher =
+        new HdfsWikipediaSearcher(new Path(indexLocation), getConf());
     PrintStream out = new PrintStream(System.out, true, "UTF-8");
 
-    WikipediaSearcher searcher = new WikipediaSearcher(indexLocation);
-    Document doc = searcher.getArticle(id);
-
-    if (doc == null) {
-      System.err.print("id " + id + " doesn't exist!\n");
+    if (cmdline.hasOption(ID_OPTION)) {
+      out.println("score: " + searcher.scoreArticle(queryText,
+          Integer.parseInt(cmdline.getOptionValue(ID_OPTION))));
     } else {
-      out.println(doc.getField(IndexField.TEXT.name).stringValue());
+      out.println("score: " + searcher.scoreArticle(queryText, cmdline.getOptionValue(TITLE_OPTION)));
     }
 
     searcher.close();
     out.close();
+
+    return 0;
+  }
+
+  public static void main(String[] args) throws Exception {
+    ToolRunner.run(new ScoreWikipediaArticleHdfs(), args);
   }
 }

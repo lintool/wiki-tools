@@ -1,11 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>cc.wikitools</groupId>
-  <artifactId>wiki-tools-lucene</artifactId>
+  <artifactId>wiki-tools-lucene-hadoop</artifactId>
   <packaging>jar</packaging>
-  <version>0.2-SNAPSHOT</version>
-  <name>wiki-tools-lucene</name>
-  <description>Tools for indexing Wikipedia with Lucene</description>
+  <version>0.1-SNAPSHOT</version>
+  <name>wiki-tools-lucene-hadoop</name>
+  <description>Java tools for searching Wikipedia Lucene indexes in HDFS</description>
   <url>http://wikitools.cc</url>
 
   <licenses>
@@ -45,10 +45,6 @@
         <configuration>
           <programs>
             <program>
-              <mainClass>cc.wikitools.lucene.IndexWikipediaDump</mainClass>
-              <name>IndexWikipediaDump</name>
-            </program>
-            <program>
               <mainClass>cc.wikitools.lucene.Launcher</mainClass>
               <name>launch</name>
             </program>
@@ -66,7 +62,7 @@
                 <goal>perform</goal>
               </goals>
               <configuration>
-                <pomFileName>wiki-tools-lucene/pom.xml</pomFileName>
+                <pomFileName>wiki-tools-lucene-hadoop/pom.xml</pomFileName>
               </configuration>
             </execution>
          </executions>
@@ -76,40 +72,14 @@
 
   <dependencies>
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.11</version>
-      <scope>test</scope>
+      <groupId>cc.wikitools</groupId>
+      <artifactId>wiki-tools-lucene</artifactId>
+      <version>0.2-SNAPSHOT</version>
     </dependency>
     <dependency>
-      <groupId>org.wikiclean</groupId>
-      <artifactId>wikiclean</artifactId>
-      <version>0.3</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>4.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-queryparser</artifactId>
-      <version>4.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analyzers-common</artifactId>
-      <version>4.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <version>1.2.17</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>14.0.1</version>
+      <groupId>org.apache.hadoop</groupId>
+      <artifactId>hadoop-core</artifactId>
+      <version>1.1.2</version>
     </dependency>
   </dependencies>
 </project>

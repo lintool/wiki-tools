@@ -1,5 +1,5 @@
 /**
- * wiki-tools-lucene: Java package for searching Wikipedia dumps with Lucene
+ * wiki-tools-lucene-hadoop: Java tools for searching Wikipedia Lucene indexes in HDFS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package cc.wikitools.lucene;
+package cc.wikitools.lucene.hadoop;
 
-import java.io.File;
 import java.io.PrintStream;
 
 import org.apache.commons.cli.CommandLine;
@@ -27,13 +26,17 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.Tool;
+import org.apache.hadoop.util.ToolRunner;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 
 import cc.wikitools.lucene.IndexWikipediaDump.IndexField;
 
-public class SearchWikipedia {
+public class SearchWikipediaHdfs extends Configured implements Tool {
   private static final int DEFAULT_NUM_RESULTS = 10;
 
   private static final String INDEX_OPTION = "index";
@@ -44,7 +47,8 @@ public class SearchWikipedia {
   private static final String TITLE_OPTION = "title";
 
   @SuppressWarnings("static-access")
-  public static void main(String[] args) throws Exception {
+  @Override
+  public int run(String[] args) throws Exception {
     Options options = new Options();
     options.addOption(OptionBuilder.withArgName("path").hasArg()
         .withDescription("index location").create(INDEX_OPTION));
@@ -69,16 +73,11 @@ public class SearchWikipedia {
     if (!cmdline.hasOption(QUERY_OPTION) || !cmdline.hasOption(INDEX_OPTION)
         || !cmdline.hasOption(QUERY_OPTION)) {
       HelpFormatter formatter = new HelpFormatter();
-      formatter.printHelp(SearchWikipedia.class.getName(), options);
+      formatter.printHelp(SearchWikipediaHdfs.class.getName(), options);
       System.exit(-1);
     }
 
-    File indexLocation = new File(cmdline.getOptionValue(INDEX_OPTION));
-    if (!indexLocation.exists()) {
-      System.err.println("Error: " + indexLocation + " does not exist!");
-      System.exit(-1);
-    }
-
+    String indexLocation = cmdline.getOptionValue(INDEX_OPTION);
     String queryText = cmdline.getOptionValue(QUERY_OPTION);
     int numResults = cmdline.hasOption(NUM_RESULTS_OPTION) ?
         Integer.parseInt(cmdline.getOptionValue(NUM_RESULTS_OPTION)) : DEFAULT_NUM_RESULTS;
@@ -87,7 +86,8 @@ public class SearchWikipedia {
 
     PrintStream out = new PrintStream(System.out, true, "UTF-8");
 
-    WikipediaSearcher searcher = new WikipediaSearcher(indexLocation);
+    HdfsWikipediaSearcher searcher = 
+        new HdfsWikipediaSearcher(new Path(indexLocation), getConf());
     TopDocs rs = null;
     if (searchArticle) {
       rs = searcher.searchArticle(queryText, numResults);
@@ -99,10 +99,9 @@ public class SearchWikipedia {
     for (ScoreDoc scoreDoc : rs.scoreDocs) {
       Document hit = searcher.doc(scoreDoc.doc);
 
-      out.println(String.format("%d. %s (wiki id = %s, lucene id = %d) %f", i,
+      out.println(String.format("%d. %s (id = %s) %f", i,
           hit.getField(IndexField.TITLE.name).stringValue(),
-          hit.getField(IndexField.ID.name).stringValue(),
-          scoreDoc.doc,
+          hit.getField(IndexField.ID.name).stringValue(), 
           scoreDoc.score));
       if (verbose) {
         out.println("# " + hit.toString().replaceAll("[\\n\\r]+", " "));
@@ -112,5 +111,11 @@ public class SearchWikipedia {
 
     searcher.close();
     out.close();
+
+    return 0;
+  }
+
+  public static void main(String[] args) throws Exception {
+    ToolRunner.run(new SearchWikipediaHdfs(), args);
   }
 }
